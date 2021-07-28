@@ -10,6 +10,7 @@ package weather
 import (
 	"encoding/json"
 	"reflect"
+	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 )
@@ -30,6 +31,91 @@ type AirAndPollen struct {
 	// Value of the given type above. Values associated with mold, grass, weed and tree are in units of parts per cubic meter. Both air quality and UV are indices,
 	// so they are unitless.
 	Value *int32 `json:"value,omitempty"`
+}
+
+// AirQuality - Information about the air quality in a specific location at a specific time.
+type AirQuality struct {
+	// One-word description of the air quality in the requested language. For example, "Excellent".
+	Category *string `json:"category,omitempty"`
+
+	// A unique color corresponding to the category of this air quality result.
+	CategoryColor *string `json:"categoryColor,omitempty"`
+
+	// Date and time of the current observation displayed in ISO 8601 format, for example, 2019-10-27T19:39:57-08:00.
+	DateTime *time.Time `json:"dateTime,omitempty"`
+
+	// A textual explanation of this air quality result in the requested language.
+	Description *string `json:"description,omitempty"`
+
+	// The pollutant with the highest concentration.
+	DominantPollutant *string `json:"dominantPollutant,omitempty"`
+
+	// Internationally normalized air quality rating on a scale from 0 to 300 and up, with higher numbers representing worse air quality.
+	GlobalIndex *float32 `json:"globalIndex,omitempty"`
+
+	// Air quality rating on a scale set by local regulating bodies. Scales can vary widely based on location. See Wikipedia [https://en.wikipedia.org/wiki/Air_quality_index]
+	// for more information.
+	Index *float32 `json:"index,omitempty"`
+
+	// Information about individual pollutants.
+	Pollutants []*Pollutant `json:"pollutants,omitempty"`
+}
+
+// MarshalJSON implements the json.Marshaller interface for type AirQuality.
+func (a AirQuality) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	populate(objectMap, "category", a.Category)
+	populate(objectMap, "categoryColor", a.CategoryColor)
+	populate(objectMap, "dateTime", (*timeRFC3339)(a.DateTime))
+	populate(objectMap, "description", a.Description)
+	populate(objectMap, "dominantPollutant", a.DominantPollutant)
+	populate(objectMap, "globalIndex", a.GlobalIndex)
+	populate(objectMap, "index", a.Index)
+	populate(objectMap, "pollutants", a.Pollutants)
+	return json.Marshal(objectMap)
+}
+
+// UnmarshalJSON implements the json.Unmarshaller interface for type AirQuality.
+func (a *AirQuality) UnmarshalJSON(data []byte) error {
+	var rawMsg map[string]json.RawMessage
+	if err := json.Unmarshal(data, &rawMsg); err != nil {
+		return err
+	}
+	for key, val := range rawMsg {
+		var err error
+		switch key {
+		case "category":
+			err = unpopulate(val, &a.Category)
+			delete(rawMsg, key)
+		case "categoryColor":
+			err = unpopulate(val, &a.CategoryColor)
+			delete(rawMsg, key)
+		case "dateTime":
+			var aux timeRFC3339
+			err = unpopulate(val, &aux)
+			a.DateTime = (*time.Time)(&aux)
+			delete(rawMsg, key)
+		case "description":
+			err = unpopulate(val, &a.Description)
+			delete(rawMsg, key)
+		case "dominantPollutant":
+			err = unpopulate(val, &a.DominantPollutant)
+			delete(rawMsg, key)
+		case "globalIndex":
+			err = unpopulate(val, &a.GlobalIndex)
+			delete(rawMsg, key)
+		case "index":
+			err = unpopulate(val, &a.Index)
+			delete(rawMsg, key)
+		case "pollutants":
+			err = unpopulate(val, &a.Pollutants)
+			delete(rawMsg, key)
+		}
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // AlertArea - Information about a severe weather alert issued within an affected area(s). If multiple alerts are active for the same location, the alerts
@@ -66,6 +152,17 @@ type AlertArea struct {
 	Summary *string `json:"summary,omitempty"`
 }
 
+type ClimoSummaryResponse struct {
+	// Climo actuals for the requested month.
+	ClimoActuals *MonthlyClimoActuals `json:"climoActuals,omitempty"`
+
+	// Climo normals for the requested month.
+	ClimoNormals *MonthlyClimoNormals `json:"climoNormals,omitempty"`
+
+	// Climo records for the requested month.
+	ClimoRecords *MonthlyClimoRecords `json:"climoRecords,omitempty"`
+}
+
 type ColorValue struct {
 	// Blue component of the RGB value
 	Blue *int32 `json:"blue,omitempty"`
@@ -78,6 +175,32 @@ type ColorValue struct {
 
 	// Red component of the RGB value.
 	Red *int32 `json:"red,omitempty"`
+}
+
+// Concentration - An object containing the number of pollutant particles per volume of air.
+type Concentration struct {
+	// Type of unit for the concentration of the pollutant.
+	Unit *string `json:"unit,omitempty"`
+
+	// Numeric ID value associated with the type of unit being displayed. Can be used for unit translation. Please refer to Weather Service Concepts [https://aka.ms/AzureMapsWeatherConcepts]
+	// for details.
+	UnitType *int32 `json:"unitType,omitempty"`
+
+	// The numerical value indicating the concentration of the corresponding pollutant.
+	Value *float32 `json:"value,omitempty"`
+}
+
+// CurrentAirQualityResponse - This object is returned from a successful Get Current Air Quality call.
+type CurrentAirQualityResponse struct {
+	// A list of all air quality results for the queried location.
+	Results []*AirQuality `json:"results,omitempty"`
+}
+
+// MarshalJSON implements the json.Marshaller interface for type CurrentAirQualityResponse.
+func (c CurrentAirQualityResponse) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	populate(objectMap, "results", c.Results)
+	return json.Marshal(objectMap)
 }
 
 type CurrentConditions struct {
@@ -175,6 +298,327 @@ type CurrentConditionsResponse struct {
 func (c CurrentConditionsResponse) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	populate(objectMap, "results", c.Results)
+	return json.Marshal(objectMap)
+}
+
+// DailyAirQuality - Information about the air quality in a specific location at a specific time.
+type DailyAirQuality struct {
+	// One-word description of the air quality in the requested language. For example, "Excellent".
+	Category *string `json:"category,omitempty"`
+
+	// A unique color corresponding to the category of this air quality result.
+	CategoryColor *string `json:"categoryColor,omitempty"`
+
+	// Date and time of the current observation displayed in ISO 8601 format, for example, 2019-10-27T19:39:57-08:00.
+	DateTime *time.Time `json:"dateTime,omitempty"`
+
+	// A textual explanation of this air quality result in the requested language.
+	Description *string `json:"description,omitempty"`
+
+	// The pollutant with the highest concentration.
+	DominantPollutant *DominantPollutant `json:"dominantPollutant,omitempty"`
+
+	// Internationally normalized air quality rating on a scale from 0 to 300 and up, with higher numbers representing worse air quality.
+	GlobalIndex *float32 `json:"globalIndex,omitempty"`
+
+	// Air quality rating on a scale set by local regulating bodies. Scales can vary widely based on location. See Wikipedia [https://en.wikipedia.org/wiki/Air_quality_index]
+	// for more information.
+	Index *float32 `json:"index,omitempty"`
+}
+
+// MarshalJSON implements the json.Marshaller interface for type DailyAirQuality.
+func (d DailyAirQuality) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	populate(objectMap, "category", d.Category)
+	populate(objectMap, "categoryColor", d.CategoryColor)
+	populate(objectMap, "dateTime", (*timeRFC3339)(d.DateTime))
+	populate(objectMap, "description", d.Description)
+	populate(objectMap, "dominantPollutant", d.DominantPollutant)
+	populate(objectMap, "globalIndex", d.GlobalIndex)
+	populate(objectMap, "index", d.Index)
+	return json.Marshal(objectMap)
+}
+
+// UnmarshalJSON implements the json.Unmarshaller interface for type DailyAirQuality.
+func (d *DailyAirQuality) UnmarshalJSON(data []byte) error {
+	var rawMsg map[string]json.RawMessage
+	if err := json.Unmarshal(data, &rawMsg); err != nil {
+		return err
+	}
+	for key, val := range rawMsg {
+		var err error
+		switch key {
+		case "category":
+			err = unpopulate(val, &d.Category)
+			delete(rawMsg, key)
+		case "categoryColor":
+			err = unpopulate(val, &d.CategoryColor)
+			delete(rawMsg, key)
+		case "dateTime":
+			var aux timeRFC3339
+			err = unpopulate(val, &aux)
+			d.DateTime = (*time.Time)(&aux)
+			delete(rawMsg, key)
+		case "description":
+			err = unpopulate(val, &d.Description)
+			delete(rawMsg, key)
+		case "dominantPollutant":
+			err = unpopulate(val, &d.DominantPollutant)
+			delete(rawMsg, key)
+		case "globalIndex":
+			err = unpopulate(val, &d.GlobalIndex)
+			delete(rawMsg, key)
+		case "index":
+			err = unpopulate(val, &d.Index)
+			delete(rawMsg, key)
+		}
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// DailyAirQualityForecastResponse - This object is returned from a successful Get Daily Air Quality Forecast call.
+type DailyAirQualityForecastResponse struct {
+	// A list of all daily air quality forecasts for the queried location.
+	Forecasts []*DailyAirQuality `json:"forecasts,omitempty"`
+}
+
+// MarshalJSON implements the json.Marshaller interface for type DailyAirQualityForecastResponse.
+func (d DailyAirQualityForecastResponse) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	populate(objectMap, "forecasts", d.Forecasts)
+	return json.Marshal(objectMap)
+}
+
+type DailyClimoActuals struct {
+	// Date and time of the current observation displayed in ISO 8601 format, for example, 2019-10-27T19:39:57-08:00.
+	Date *time.Time `json:"date,omitempty"`
+
+	// Summary of heating or cooling degree day information
+	DegreeDaySummary *DegreeDaySummary `json:"degreeDaySummary,omitempty"`
+
+	// The amount of precipitation (liquid equivalent) that has fallen.
+	Precipitation *WeatherUnit `json:"precipitation,omitempty"`
+
+	// Snow.
+	Snow *WeatherUnit `json:"snow,omitempty"`
+
+	// Snow depth.
+	SnowDepth *WeatherUnit `json:"snowDepth,omitempty"`
+	Sources   []*string    `json:"sources,omitempty"`
+
+	// Temperature values.
+	Temperature *WeatherUnitMaxMinAvg `json:"temperature,omitempty"`
+}
+
+// MarshalJSON implements the json.Marshaller interface for type DailyClimoActuals.
+func (d DailyClimoActuals) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	populate(objectMap, "date", (*timeRFC3339)(d.Date))
+	populate(objectMap, "degreeDaySummary", d.DegreeDaySummary)
+	populate(objectMap, "precipitation", d.Precipitation)
+	populate(objectMap, "snow", d.Snow)
+	populate(objectMap, "snowDepth", d.SnowDepth)
+	populate(objectMap, "sources", d.Sources)
+	populate(objectMap, "temperature", d.Temperature)
+	return json.Marshal(objectMap)
+}
+
+// UnmarshalJSON implements the json.Unmarshaller interface for type DailyClimoActuals.
+func (d *DailyClimoActuals) UnmarshalJSON(data []byte) error {
+	var rawMsg map[string]json.RawMessage
+	if err := json.Unmarshal(data, &rawMsg); err != nil {
+		return err
+	}
+	for key, val := range rawMsg {
+		var err error
+		switch key {
+		case "date":
+			var aux timeRFC3339
+			err = unpopulate(val, &aux)
+			d.Date = (*time.Time)(&aux)
+			delete(rawMsg, key)
+		case "degreeDaySummary":
+			err = unpopulate(val, &d.DegreeDaySummary)
+			delete(rawMsg, key)
+		case "precipitation":
+			err = unpopulate(val, &d.Precipitation)
+			delete(rawMsg, key)
+		case "snow":
+			err = unpopulate(val, &d.Snow)
+			delete(rawMsg, key)
+		case "snowDepth":
+			err = unpopulate(val, &d.SnowDepth)
+			delete(rawMsg, key)
+		case "sources":
+			err = unpopulate(val, &d.Sources)
+			delete(rawMsg, key)
+		case "temperature":
+			err = unpopulate(val, &d.Temperature)
+			delete(rawMsg, key)
+		}
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+type DailyClimoActualsResponse struct {
+	// Climo actuals for each requested day.
+	ClimoActuals []*DailyClimoActuals `json:"climoActuals,omitempty"`
+}
+
+// MarshalJSON implements the json.Marshaller interface for type DailyClimoActualsResponse.
+func (d DailyClimoActualsResponse) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	populate(objectMap, "climoActuals", d.ClimoActuals)
+	return json.Marshal(objectMap)
+}
+
+type DailyClimoNormals struct {
+	// Date and time of the current observation displayed in ISO 8601 format, for example, 2019-10-27T19:39:57-08:00.
+	Date *time.Time `json:"date,omitempty"`
+
+	// Summary of heating or cooling degree day information
+	DegreeDaySummary *DegreeDaySummary `json:"degreeDaySummary,omitempty"`
+
+	// The amount of precipitation (liquid equivalent) that has fallen.
+	Precipitation *WeatherUnit `json:"precipitation,omitempty"`
+	Sources       []*string    `json:"sources,omitempty"`
+
+	// Temperature values.
+	Temperature *WeatherUnitMaxMinAvg `json:"temperature,omitempty"`
+}
+
+// MarshalJSON implements the json.Marshaller interface for type DailyClimoNormals.
+func (d DailyClimoNormals) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	populate(objectMap, "date", (*timeRFC3339)(d.Date))
+	populate(objectMap, "degreeDaySummary", d.DegreeDaySummary)
+	populate(objectMap, "precipitation", d.Precipitation)
+	populate(objectMap, "sources", d.Sources)
+	populate(objectMap, "temperature", d.Temperature)
+	return json.Marshal(objectMap)
+}
+
+// UnmarshalJSON implements the json.Unmarshaller interface for type DailyClimoNormals.
+func (d *DailyClimoNormals) UnmarshalJSON(data []byte) error {
+	var rawMsg map[string]json.RawMessage
+	if err := json.Unmarshal(data, &rawMsg); err != nil {
+		return err
+	}
+	for key, val := range rawMsg {
+		var err error
+		switch key {
+		case "date":
+			var aux timeRFC3339
+			err = unpopulate(val, &aux)
+			d.Date = (*time.Time)(&aux)
+			delete(rawMsg, key)
+		case "degreeDaySummary":
+			err = unpopulate(val, &d.DegreeDaySummary)
+			delete(rawMsg, key)
+		case "precipitation":
+			err = unpopulate(val, &d.Precipitation)
+			delete(rawMsg, key)
+		case "sources":
+			err = unpopulate(val, &d.Sources)
+			delete(rawMsg, key)
+		case "temperature":
+			err = unpopulate(val, &d.Temperature)
+			delete(rawMsg, key)
+		}
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+type DailyClimoNormalsResponse struct {
+	// Climo normals for each requested day.
+	ClimoNormals []*DailyClimoNormals `json:"climoNormals,omitempty"`
+}
+
+// MarshalJSON implements the json.Marshaller interface for type DailyClimoNormalsResponse.
+func (d DailyClimoNormalsResponse) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	populate(objectMap, "climoNormals", d.ClimoNormals)
+	return json.Marshal(objectMap)
+}
+
+type DailyClimoRecords struct {
+	// Date and time of the current observation displayed in ISO 8601 format, for example, 2019-10-27T19:39:57-08:00.
+	Date *time.Time `json:"date,omitempty"`
+
+	// Maximum amount of precipitation (liquid equivalent) that has fallen.
+	Precipitation *WeatherUnitYearMax `json:"precipitation,omitempty"`
+
+	// Maximum snow.
+	Snow    *WeatherUnitYearMax `json:"snow,omitempty"`
+	Sources []*string           `json:"sources,omitempty"`
+
+	// Temperature value.
+	Temperature *WeatherUnitYearMaxMinAvg `json:"temperature,omitempty"`
+}
+
+// MarshalJSON implements the json.Marshaller interface for type DailyClimoRecords.
+func (d DailyClimoRecords) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	populate(objectMap, "date", (*timeRFC3339)(d.Date))
+	populate(objectMap, "precipitation", d.Precipitation)
+	populate(objectMap, "snow", d.Snow)
+	populate(objectMap, "sources", d.Sources)
+	populate(objectMap, "temperature", d.Temperature)
+	return json.Marshal(objectMap)
+}
+
+// UnmarshalJSON implements the json.Unmarshaller interface for type DailyClimoRecords.
+func (d *DailyClimoRecords) UnmarshalJSON(data []byte) error {
+	var rawMsg map[string]json.RawMessage
+	if err := json.Unmarshal(data, &rawMsg); err != nil {
+		return err
+	}
+	for key, val := range rawMsg {
+		var err error
+		switch key {
+		case "date":
+			var aux timeRFC3339
+			err = unpopulate(val, &aux)
+			d.Date = (*time.Time)(&aux)
+			delete(rawMsg, key)
+		case "precipitation":
+			err = unpopulate(val, &d.Precipitation)
+			delete(rawMsg, key)
+		case "snow":
+			err = unpopulate(val, &d.Snow)
+			delete(rawMsg, key)
+		case "sources":
+			err = unpopulate(val, &d.Sources)
+			delete(rawMsg, key)
+		case "temperature":
+			err = unpopulate(val, &d.Temperature)
+			delete(rawMsg, key)
+		}
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+type DailyClimoRecordsResponse struct {
+	// Climo records for each requested day.
+	ClimoRecords []*DailyClimoRecords `json:"climoRecords,omitempty"`
+}
+
+// MarshalJSON implements the json.Marshaller interface for type DailyClimoRecordsResponse.
+func (d DailyClimoRecordsResponse) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	populate(objectMap, "climoRecords", d.ClimoRecords)
 	return json.Marshal(objectMap)
 }
 
@@ -502,6 +946,19 @@ type HazardDetail struct {
 	ShortPhrase *string `json:"shortPhrase,omitempty"`
 }
 
+// HourlyAirQualityForecastResponse - This object is returned from a successful Get Hourly Air Quality Forecast call.
+type HourlyAirQualityForecastResponse struct {
+	// A list of all hourly air quality forecasts for the queried location.
+	Forecasts []*AirQuality `json:"forecasts,omitempty"`
+}
+
+// MarshalJSON implements the json.Marshaller interface for type HourlyAirQualityForecastResponse.
+func (h HourlyAirQualityForecastResponse) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	populate(objectMap, "forecasts", h.Forecasts)
+	return json.Marshal(objectMap)
+}
+
 type HourlyForecast struct {
 	// Cloud ceiling in specified unit. The ceiling is a measurement of the height of the base of the lowest clouds.
 	Ceiling *WeatherUnit `json:"ceiling,omitempty"`
@@ -682,6 +1139,99 @@ type MinuteForecastSummary struct {
 
 	// Short summary phrase for the next 120 minutes. Phrase length is approximately 25 characters.
 	ShortPhrase *string `json:"shortPhrase,omitempty"`
+}
+
+type MonthlyClimoActuals struct {
+	// Summary of Heating or Cooling Degree Day information.
+	DegreeDaySummary *DegreeDaySummary `json:"degreeDaySummary,omitempty"`
+
+	// The amount of precipitation (liquid equivalent) that has fallen.
+	Precipitation *WeatherUnit `json:"precipitation,omitempty"`
+
+	// Snow.
+	Snow *WeatherUnit `json:"snow,omitempty"`
+
+	// Snow depth.
+	SnowDepth *WeatherUnit `json:"snowDepth,omitempty"`
+	Sources   []*string    `json:"sources,omitempty"`
+
+	// Temperature value.
+	Temperature *WeatherUnitMaxMinAvg `json:"temperature,omitempty"`
+}
+
+// MarshalJSON implements the json.Marshaller interface for type MonthlyClimoActuals.
+func (m MonthlyClimoActuals) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	populate(objectMap, "degreeDaySummary", m.DegreeDaySummary)
+	populate(objectMap, "precipitation", m.Precipitation)
+	populate(objectMap, "snow", m.Snow)
+	populate(objectMap, "snowDepth", m.SnowDepth)
+	populate(objectMap, "sources", m.Sources)
+	populate(objectMap, "temperature", m.Temperature)
+	return json.Marshal(objectMap)
+}
+
+type MonthlyClimoNormals struct {
+	// Summary of heating or cooling degree day information.
+	DegreeDaySummary *DegreeDaySummary `json:"degreeDaySummary,omitempty"`
+
+	// The amount of precipitation (liquid equivalent) that has fallen.
+	Precipitation *WeatherUnit `json:"precipitation,omitempty"`
+	Sources       []*string    `json:"sources,omitempty"`
+
+	// Temperature values.
+	Temperature *WeatherUnitMaxMinAvg `json:"temperature,omitempty"`
+}
+
+// MarshalJSON implements the json.Marshaller interface for type MonthlyClimoNormals.
+func (m MonthlyClimoNormals) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	populate(objectMap, "degreeDaySummary", m.DegreeDaySummary)
+	populate(objectMap, "precipitation", m.Precipitation)
+	populate(objectMap, "sources", m.Sources)
+	populate(objectMap, "temperature", m.Temperature)
+	return json.Marshal(objectMap)
+}
+
+type MonthlyClimoRecords struct {
+	// Maximum amount of precipitation (liquid equivalent) that has fallen.
+	Precipitation *WeatherUnitYearMax `json:"precipitation,omitempty"`
+
+	// Maximum snow.
+	Snow    *WeatherUnitYearMax `json:"snow,omitempty"`
+	Sources []*string           `json:"sources,omitempty"`
+
+	// Temperature value.
+	Temperature *WeatherUnitYearMaxMinAvg `json:"temperature,omitempty"`
+}
+
+// MarshalJSON implements the json.Marshaller interface for type MonthlyClimoRecords.
+func (m MonthlyClimoRecords) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	populate(objectMap, "precipitation", m.Precipitation)
+	populate(objectMap, "snow", m.Snow)
+	populate(objectMap, "sources", m.Sources)
+	populate(objectMap, "temperature", m.Temperature)
+	return json.Marshal(objectMap)
+}
+
+// Pollutant - Detailed information about an individual pollutant. Not returned if pollutants=false.
+type Pollutant struct {
+	// An object containing the number of pollutant particles per volume of air.
+	Concentration *Concentration `json:"concentration,omitempty"`
+
+	// Internationally normalized air quality rating on a scale from 0 to 300 and up, with higher numbers representing worse air quality.
+	GlobalIndex *float32 `json:"globalIndex,omitempty"`
+
+	// Air quality rating on a scale set by local regulating bodies. Scales can vary widely based on location. See Wikipedia [https://en.wikipedia.org/wiki/Air_quality_index]
+	// for more information.
+	Index *float32 `json:"index,omitempty"`
+
+	// The name of the pollutant in English.
+	Name *string `json:"name,omitempty"`
+
+	// Type of pollutant. Please note that more may be added at any time.
+	Type *PollutantType `json:"type,omitempty"`
 }
 
 type PrecipitationSummary struct {
@@ -964,6 +1514,48 @@ type WeatherAlongRouteSummary struct {
 	IconCode *int32 `json:"iconCode,omitempty"`
 }
 
+// WeatherGetAirQualityDailyForecastOptions contains the optional parameters for the Weather.GetAirQualityDailyForecast method.
+type WeatherGetAirQualityDailyForecastOptions struct {
+	// Specifies for how many days from now we would like to know about the air quality. Available values are 1, 2, 3, 4, 5, 6, and 7. Default value is 1.
+	Duration *int32
+	// Language in which search results should be returned. Should be one of supported IETF language tags, case insensitive. When data in specified language
+	// is not available for a specific field, default language is used. Default value is en-us.
+	// Please refer to [Supported languages](https://docs.microsoft.com/azure/azure-maps/supported-languages) for details.
+	Language *string
+}
+
+// WeatherGetAirQualityHourlyForecastOptions contains the optional parameters for the Weather.GetAirQualityHourlyForecast method.
+type WeatherGetAirQualityHourlyForecastOptions struct {
+	// Specifies for how many hours from now we would like to know about the air quality. Available values are 1, 12, 24, 48, 72, 96.
+	Duration *int32
+	// Language in which search results should be returned. Should be one of supported IETF language tags, case insensitive. When data in specified language
+	// is not available for a specific field, default language is used. Default value is en-us.
+	// Please refer to [Supported languages](https://docs.microsoft.com/azure/azure-maps/supported-languages) for details.
+	Language *string
+	// Boolean value that returns detailed information about each pollutant. By default is True.
+	Pollutants *bool
+}
+
+// WeatherGetClimoSummaryOptions contains the optional parameters for the Weather.GetClimoSummary method.
+type WeatherGetClimoSummaryOptions struct {
+	// Language in which search results should be returned. Should be one of supported IETF language tags, case insensitive. When data in specified language
+	// is not available for a specific field, default language is used. Default value is en-us.
+	// Please refer to [Supported languages](https://docs.microsoft.com/azure/azure-maps/supported-languages) for details.
+	Language *string
+	// Specifies to return the data in either metric units or imperial units. Default value is metric.
+	Unit *WeatherDataUnit
+}
+
+// WeatherGetCurrentAirQualityOptions contains the optional parameters for the Weather.GetCurrentAirQuality method.
+type WeatherGetCurrentAirQualityOptions struct {
+	// Language in which search results should be returned. Should be one of supported IETF language tags, case insensitive. When data in specified language
+	// is not available for a specific field, default language is used. Default value is en-us.
+	// Please refer to [Supported languages](https://docs.microsoft.com/azure/azure-maps/supported-languages) for details.
+	Language *string
+	// Boolean value that returns detailed information about each pollutant. By default is True.
+	Pollutants *bool
+}
+
 // WeatherGetCurrentConditionsOptions contains the optional parameters for the Weather.GetCurrentConditions method.
 type WeatherGetCurrentConditionsOptions struct {
 	// Return full details for the current conditions. Available values are
@@ -976,6 +1568,42 @@ type WeatherGetCurrentConditionsOptions struct {
 	// * `0` - Return the most current weather conditions.
 	// * `6` - Return weather conditions from past 6 hours.
 	// * `24` - Return weather conditions from past 24 hours.
+	Duration *int32
+	// Language in which search results should be returned. Should be one of supported IETF language tags, case insensitive. When data in specified language
+	// is not available for a specific field, default language is used. Default value is en-us.
+	// Please refer to [Supported languages](https://docs.microsoft.com/azure/azure-maps/supported-languages) for details.
+	Language *string
+	// Specifies to return the data in either metric units or imperial units. Default value is metric.
+	Unit *WeatherDataUnit
+}
+
+// WeatherGetDailyClimoActualsOptions contains the optional parameters for the Weather.GetDailyClimoActuals method.
+type WeatherGetDailyClimoActualsOptions struct {
+	// Specifies for how many days the daily climo actuals responses are returned.
+	Duration *int32
+	// Language in which search results should be returned. Should be one of supported IETF language tags, case insensitive. When data in specified language
+	// is not available for a specific field, default language is used. Default value is en-us.
+	// Please refer to [Supported languages](https://docs.microsoft.com/azure/azure-maps/supported-languages) for details.
+	Language *string
+	// Specifies to return the data in either metric units or imperial units. Default value is metric.
+	Unit *WeatherDataUnit
+}
+
+// WeatherGetDailyClimoNormalsOptions contains the optional parameters for the Weather.GetDailyClimoNormals method.
+type WeatherGetDailyClimoNormalsOptions struct {
+	// Specifies for how many days the daily climo actuals responses are returned.
+	Duration *int32
+	// Language in which search results should be returned. Should be one of supported IETF language tags, case insensitive. When data in specified language
+	// is not available for a specific field, default language is used. Default value is en-us.
+	// Please refer to [Supported languages](https://docs.microsoft.com/azure/azure-maps/supported-languages) for details.
+	Language *string
+	// Specifies to return the data in either metric units or imperial units. Default value is metric.
+	Unit *WeatherDataUnit
+}
+
+// WeatherGetDailyClimoRecordsOptions contains the optional parameters for the Weather.GetDailyClimoRecords method.
+type WeatherGetDailyClimoRecordsOptions struct {
+	// Specifies for how many days the daily climo actuals responses are returned.
 	Duration *int32
 	// Language in which search results should be returned. Should be one of supported IETF language tags, case insensitive. When data in specified language
 	// is not available for a specific field, default language is used. Default value is en-us.
@@ -1147,6 +1775,18 @@ type WeatherUnit struct {
 	Value *float32 `json:"value,omitempty"`
 }
 
+// WeatherUnitMaxMinAvg - Returned temperature values.
+type WeatherUnitMaxMinAvg struct {
+	// Average temperature for the time period.
+	Average *WeatherUnit `json:"average,omitempty"`
+
+	// Maximum temperature for the time period.
+	Maximum *WeatherUnit `json:"maximum,omitempty"`
+
+	// Minimum temperature for the time period.
+	Minimum *WeatherUnit `json:"minimum,omitempty"`
+}
+
 // WeatherUnitRange - Returned temperature values.
 type WeatherUnitRange struct {
 	// Maximum temperature for the time period
@@ -1154,6 +1794,39 @@ type WeatherUnitRange struct {
 
 	// Minimum temperature for the time period.
 	Minimum *WeatherUnit `json:"minimum,omitempty"`
+}
+
+type WeatherUnitYear struct {
+	// Type of unit for the returned value.
+	Unit *string `json:"unit,omitempty"`
+
+	// Numeric ID value associated with the type of unit being displayed. Can be used for unit translation. Please refer to Weather Service Concepts [https://aka.ms/AzureMapsWeatherConcepts]
+	// for details.
+	UnitType *int32 `json:"unitType,omitempty"`
+
+	// Rounded value.
+	Value *float32 `json:"value,omitempty"`
+
+	// Year the value occurred.
+	Year *int32 `json:"year,omitempty"`
+}
+
+// WeatherUnitYearMax - Returned temperature values.
+type WeatherUnitYearMax struct {
+	// Maximum temperature for the time period.
+	Maximum *WeatherUnitYear `json:"maximum,omitempty"`
+}
+
+// WeatherUnitYearMaxMinAvg - Returned temperature values.
+type WeatherUnitYearMaxMinAvg struct {
+	// Average temperature for the time period.
+	Average *WeatherUnit `json:"average,omitempty"`
+
+	// Maximum temperature for the time period.
+	Maximum *WeatherUnitYear `json:"maximum,omitempty"`
+
+	// Minimum temperature for the time period.
+	Minimum *WeatherUnitYear `json:"minimum,omitempty"`
 }
 
 type WeatherWaypoint struct {
@@ -1255,4 +1928,11 @@ func populate(m map[string]interface{}, k string, v interface{}) {
 	} else if !reflect.ValueOf(v).IsNil() {
 		m[k] = v
 	}
+}
+
+func unpopulate(data json.RawMessage, v interface{}) error {
+	if data == nil {
+		return nil
+	}
+	return json.Unmarshal(data, v)
 }

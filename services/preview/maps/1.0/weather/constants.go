@@ -37,6 +37,41 @@ func (c DayQuarter) ToPtr() *DayQuarter {
 	return &c
 }
 
+// DominantPollutant - Type of pollutant. Please note that more may be added at any time.
+type DominantPollutant string
+
+const (
+	// DominantPollutantCarbonMonoxide - Carbon monoxide ("CO")
+	DominantPollutantCarbonMonoxide DominantPollutant = "Carbon Monoxide"
+	// DominantPollutantNitrogenDioxide - Nitrogen dioxide ("NO2")
+	DominantPollutantNitrogenDioxide DominantPollutant = "Nitrogen Dioxide"
+	// DominantPollutantOzone - Ozone ("O3")
+	DominantPollutantOzone DominantPollutant = "Ozone"
+	// DominantPollutantParticulateMatter10 - Particulate matter 10 ("PM10")
+	DominantPollutantParticulateMatter10 DominantPollutant = "Particulate Matter 10"
+	// DominantPollutantParticulateMatter25 - Particulate matter 2.5 ("PM2.5")
+	DominantPollutantParticulateMatter25 DominantPollutant = "Particulate Matter 2.5"
+	// DominantPollutantSulfurDioxide - Sulfur dioxide ("SO2")
+	DominantPollutantSulfurDioxide DominantPollutant = "Sulfur Dioxide"
+)
+
+// PossibleDominantPollutantValues returns the possible values for the DominantPollutant const type.
+func PossibleDominantPollutantValues() []DominantPollutant {
+	return []DominantPollutant{	
+		DominantPollutantCarbonMonoxide,
+		DominantPollutantNitrogenDioxide,
+		DominantPollutantOzone,
+		DominantPollutantParticulateMatter10,
+		DominantPollutantParticulateMatter25,
+		DominantPollutantSulfurDioxide,
+	}
+}
+
+// ToPtr returns a *DominantPollutant pointing to the current value.
+func (c DominantPollutant) ToPtr() *DominantPollutant {
+	return &c
+}
+
 type GeographicResourceLocation string
 
 const (
@@ -119,6 +154,41 @@ func PossibleLatestStatusKeywordValues() []LatestStatusKeyword {
 
 // ToPtr returns a *LatestStatusKeyword pointing to the current value.
 func (c LatestStatusKeyword) ToPtr() *LatestStatusKeyword {
+	return &c
+}
+
+// PollutantType - Type of pollutant. Please note that more may be added at any time.
+type PollutantType string
+
+const (
+	// PollutantTypeCO - Carbon monoxide ("CO")
+	PollutantTypeCO PollutantType = "CO"
+	// PollutantTypeNO2 - Nitrogen dioxide ("NO2")
+	PollutantTypeNO2 PollutantType = "NO2"
+	// PollutantTypeO3 - Ozone ("O3")
+	PollutantTypeO3 PollutantType = "O3"
+	// PollutantTypePM10 - Particulate matter 10 ("PM10")
+	PollutantTypePM10 PollutantType = "PM10"
+	// PollutantTypePM25 - Particulate matter 2.5 ("PM2.5")
+	PollutantTypePM25 PollutantType = "PM2.5"
+	// PollutantTypeSO2 - Sulfur dioxide ("SO2")
+	PollutantTypeSO2 PollutantType = "SO2"
+)
+
+// PossiblePollutantTypeValues returns the possible values for the PollutantType const type.
+func PossiblePollutantTypeValues() []PollutantType {
+	return []PollutantType{	
+		PollutantTypeCO,
+		PollutantTypeNO2,
+		PollutantTypeO3,
+		PollutantTypePM10,
+		PollutantTypePM25,
+		PollutantTypeSO2,
+	}
+}
+
+// ToPtr returns a *PollutantType pointing to the current value.
+func (c PollutantType) ToPtr() *PollutantType {
 	return &c
 }
 

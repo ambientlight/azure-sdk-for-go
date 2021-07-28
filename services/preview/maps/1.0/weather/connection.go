@@ -9,7 +9,6 @@ package weather
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 )
@@ -45,18 +44,9 @@ func (c *ConnectionOptions) telemetryOptions() *azcore.TelemetryOptions {
 	return &to
 }
 
-// preserve the create params to recreate the connection to hotfix the AD Azure Maps auth in LRO GET requests
-type CreateParams struct {
-	geography *Geography
-	cred      azcore.Credential
-	options   *ConnectionOptions
-}
-
-// Connection - APIs for managing aliases in Azure Maps.
 type Connection struct {
-	u  string
-	p  azcore.Pipeline
-	cp CreateParams
+	u string
+	p azcore.Pipeline
 }
 
 // NewConnection creates an instance of the Connection type with the specified endpoint.
@@ -73,13 +63,13 @@ func NewConnection(geography *Geography, cred azcore.Credential, options *Connec
 	policies = append(policies, options.PerRetryPolicies...)
 	policies = append(policies, cred.AuthenticationPolicy(azcore.AuthenticationPolicyOptions{Options: azcore.TokenRequestOptions{Scopes: scopes}}))
 	policies = append(policies, azcore.NewLogPolicy(&options.Logging))
-	hostURL := "https://{geography}.atlas.microsoft.com"
+	hostURL := "https://atlas.microsoft.com"
 	if geography == nil {
-		defaultValue := "us"
-		geography = ((*Geography)(&defaultValue))
+		defaultValue := GeographyUs
+		geography = &defaultValue
 	}
-	hostURL = strings.ReplaceAll(hostURL, "{geography}", (string)(*geography))
-	return &Connection{u: hostURL, p: azcore.NewPipeline(options.HTTPClient, policies...), cp: CreateParams{geography, cred, options}}
+	//hostURL = strings.ReplaceAll(hostURL, "{geography}", string(*geography))
+	return &Connection{u: hostURL, p: azcore.NewPipeline(options.HTTPClient, policies...)}
 }
 
 // Endpoint returns the connection's endpoint.

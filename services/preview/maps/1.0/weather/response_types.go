@@ -9,70 +9,183 @@ package weather
 
 import "net/http"
 
-// CurrentConditionsResponseResponse is the response envelope for operations that return a CurrentConditionsResponse type.
-type CurrentConditionsResponseResponse struct {
-	CurrentConditionsResponse *CurrentConditionsResponse
-
+// WeatherGetAirQualityDailyForecastResponse contains the response from method Weather.GetAirQualityDailyForecast.
+type WeatherGetAirQualityDailyForecastResponse struct {
+	WeatherGetAirQualityDailyForecastResult
 	// RawResponse contains the underlying HTTP response.
 	RawResponse *http.Response
 }
 
-// DailyForecastResponseResponse is the response envelope for operations that return a DailyForecastResponse type.
-type DailyForecastResponseResponse struct {
-	DailyForecastResponse *DailyForecastResponse
+// WeatherGetAirQualityDailyForecastResult contains the result from method Weather.GetAirQualityDailyForecast.
+type WeatherGetAirQualityDailyForecastResult struct {
+	DailyAirQualityForecastResponse
+}
 
+// WeatherGetAirQualityHourlyForecastResponse contains the response from method Weather.GetAirQualityHourlyForecast.
+type WeatherGetAirQualityHourlyForecastResponse struct {
+	WeatherGetAirQualityHourlyForecastResult
 	// RawResponse contains the underlying HTTP response.
 	RawResponse *http.Response
 }
 
-// DailyIndicesResponseResponse is the response envelope for operations that return a DailyIndicesResponse type.
-type DailyIndicesResponseResponse struct {
-	// This object is returned from a successful Get Daily Indices call.
-	DailyIndicesResponse *DailyIndicesResponse
+// WeatherGetAirQualityHourlyForecastResult contains the result from method Weather.GetAirQualityHourlyForecast.
+type WeatherGetAirQualityHourlyForecastResult struct {
+	HourlyAirQualityForecastResponse
+}
 
+// WeatherGetClimoSummaryResponse contains the response from method Weather.GetClimoSummary.
+type WeatherGetClimoSummaryResponse struct {
+	WeatherGetClimoSummaryResult
 	// RawResponse contains the underlying HTTP response.
 	RawResponse *http.Response
 }
 
-// HourlyForecastResponseResponse is the response envelope for operations that return a HourlyForecastResponse type.
-type HourlyForecastResponseResponse struct {
-	HourlyForecastResponse *HourlyForecastResponse
+// WeatherGetClimoSummaryResult contains the result from method Weather.GetClimoSummary.
+type WeatherGetClimoSummaryResult struct {
+	ClimoSummaryResponse
+}
 
+// WeatherGetCurrentAirQualityResponse contains the response from method Weather.GetCurrentAirQuality.
+type WeatherGetCurrentAirQualityResponse struct {
+	WeatherGetCurrentAirQualityResult
 	// RawResponse contains the underlying HTTP response.
 	RawResponse *http.Response
 }
 
-// MinuteForecastResponseResponse is the response envelope for operations that return a MinuteForecastResponse type.
-type MinuteForecastResponseResponse struct {
-	MinuteForecastResponse *MinuteForecastResponse
+// WeatherGetCurrentAirQualityResult contains the result from method Weather.GetCurrentAirQuality.
+type WeatherGetCurrentAirQualityResult struct {
+	CurrentAirQualityResponse
+}
 
+// WeatherGetCurrentConditionsResponse contains the response from method Weather.GetCurrentConditions.
+type WeatherGetCurrentConditionsResponse struct {
+	WeatherGetCurrentConditionsResult
 	// RawResponse contains the underlying HTTP response.
 	RawResponse *http.Response
 }
 
-// QuarterDayForecastResponseResponse is the response envelope for operations that return a QuarterDayForecastResponse type.
-type QuarterDayForecastResponseResponse struct {
-	QuarterDayForecastResponse *QuarterDayForecastResponse
+// WeatherGetCurrentConditionsResult contains the result from method Weather.GetCurrentConditions.
+type WeatherGetCurrentConditionsResult struct {
+	CurrentConditionsResponse
+}
 
+// WeatherGetDailyClimoActualsResponse contains the response from method Weather.GetDailyClimoActuals.
+type WeatherGetDailyClimoActualsResponse struct {
+	WeatherGetDailyClimoActualsResult
 	// RawResponse contains the underlying HTTP response.
 	RawResponse *http.Response
 }
 
-// SevereWeatherAlertsResponseResponse is the response envelope for operations that return a SevereWeatherAlertsResponse type.
-type SevereWeatherAlertsResponseResponse struct {
-	// RawResponse contains the underlying HTTP response.
-	RawResponse *http.Response
-
-	// This object is returned from a successful Get Severe Weather Alerts call.
-	SevereWeatherAlertsResponse *SevereWeatherAlertsResponse
+// WeatherGetDailyClimoActualsResult contains the result from method Weather.GetDailyClimoActuals.
+type WeatherGetDailyClimoActualsResult struct {
+	DailyClimoActualsResponse
 }
 
-// WeatherAlongRouteResponseResponse is the response envelope for operations that return a WeatherAlongRouteResponse type.
-type WeatherAlongRouteResponseResponse struct {
+// WeatherGetDailyClimoNormalsResponse contains the response from method Weather.GetDailyClimoNormals.
+type WeatherGetDailyClimoNormalsResponse struct {
+	WeatherGetDailyClimoNormalsResult
 	// RawResponse contains the underlying HTTP response.
 	RawResponse *http.Response
+}
 
-	// This object is returned from a successful Weather Along Route.
-	WeatherAlongRouteResponse *WeatherAlongRouteResponse
+// WeatherGetDailyClimoNormalsResult contains the result from method Weather.GetDailyClimoNormals.
+type WeatherGetDailyClimoNormalsResult struct {
+	DailyClimoNormalsResponse
+}
+
+// WeatherGetDailyClimoRecordsResponse contains the response from method Weather.GetDailyClimoRecords.
+type WeatherGetDailyClimoRecordsResponse struct {
+	WeatherGetDailyClimoRecordsResult
+	// RawResponse contains the underlying HTTP response.
+	RawResponse *http.Response
+}
+
+// WeatherGetDailyClimoRecordsResult contains the result from method Weather.GetDailyClimoRecords.
+type WeatherGetDailyClimoRecordsResult struct {
+	DailyClimoRecordsResponse
+}
+
+// WeatherGetDailyForecastResponse contains the response from method Weather.GetDailyForecast.
+type WeatherGetDailyForecastResponse struct {
+	WeatherGetDailyForecastResult
+	// RawResponse contains the underlying HTTP response.
+	RawResponse *http.Response
+}
+
+// WeatherGetDailyForecastResult contains the result from method Weather.GetDailyForecast.
+type WeatherGetDailyForecastResult struct {
+	DailyForecastResponse
+}
+
+// WeatherGetDailyIndicesResponse contains the response from method Weather.GetDailyIndices.
+type WeatherGetDailyIndicesResponse struct {
+	WeatherGetDailyIndicesResult
+	// RawResponse contains the underlying HTTP response.
+	RawResponse *http.Response
+}
+
+// WeatherGetDailyIndicesResult contains the result from method Weather.GetDailyIndices.
+type WeatherGetDailyIndicesResult struct {
+	DailyIndicesResponse
+}
+
+// WeatherGetHourlyForecastResponse contains the response from method Weather.GetHourlyForecast.
+type WeatherGetHourlyForecastResponse struct {
+	WeatherGetHourlyForecastResult
+	// RawResponse contains the underlying HTTP response.
+	RawResponse *http.Response
+}
+
+// WeatherGetHourlyForecastResult contains the result from method Weather.GetHourlyForecast.
+type WeatherGetHourlyForecastResult struct {
+	HourlyForecastResponse
+}
+
+// WeatherGetMinuteForecastResponse contains the response from method Weather.GetMinuteForecast.
+type WeatherGetMinuteForecastResponse struct {
+	WeatherGetMinuteForecastResult
+	// RawResponse contains the underlying HTTP response.
+	RawResponse *http.Response
+}
+
+// WeatherGetMinuteForecastResult contains the result from method Weather.GetMinuteForecast.
+type WeatherGetMinuteForecastResult struct {
+	MinuteForecastResponse
+}
+
+// WeatherGetQuarterDayForecastResponse contains the response from method Weather.GetQuarterDayForecast.
+type WeatherGetQuarterDayForecastResponse struct {
+	WeatherGetQuarterDayForecastResult
+	// RawResponse contains the underlying HTTP response.
+	RawResponse *http.Response
+}
+
+// WeatherGetQuarterDayForecastResult contains the result from method Weather.GetQuarterDayForecast.
+type WeatherGetQuarterDayForecastResult struct {
+	QuarterDayForecastResponse
+}
+
+// WeatherGetSevereWeatherAlertsResponse contains the response from method Weather.GetSevereWeatherAlerts.
+type WeatherGetSevereWeatherAlertsResponse struct {
+	WeatherGetSevereWeatherAlertsResult
+	// RawResponse contains the underlying HTTP response.
+	RawResponse *http.Response
+}
+
+// WeatherGetSevereWeatherAlertsResult contains the result from method Weather.GetSevereWeatherAlerts.
+type WeatherGetSevereWeatherAlertsResult struct {
+	SevereWeatherAlertsResponse
+}
+
+// WeatherGetWeatherAlongRouteResponse contains the response from method Weather.GetWeatherAlongRoute.
+type WeatherGetWeatherAlongRouteResponse struct {
+	WeatherGetWeatherAlongRouteResult
+	// RawResponse contains the underlying HTTP response.
+	RawResponse *http.Response
+}
+
+// WeatherGetWeatherAlongRouteResult contains the result from method Weather.GetWeatherAlongRoute.
+type WeatherGetWeatherAlongRouteResult struct {
+	WeatherAlongRouteResponse
 }
 

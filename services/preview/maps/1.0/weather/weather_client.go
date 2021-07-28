@@ -11,27 +11,309 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
-
-	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 )
 
 // WeatherClient contains the methods for the Weather group.
 // Don't use this type directly, use NewWeatherClient() instead.
 type WeatherClient struct {
-	con         *Connection
+	con *Connection
 	xmsClientID *string
 }
 
 // NewWeatherClient creates a new instance of WeatherClient with the specified values.
 func NewWeatherClient(con *Connection, xmsClientID *string) *WeatherClient {
-	return &WeatherClient{
-		con:         NewConnection(con.cp.geography, ClientIdCredScaffold{con.cp.cred, xmsClientID}, con.cp.options),
-		xmsClientID: xmsClientID,
+	return &WeatherClient{con: con, xmsClientID: xmsClientID}
+}
+
+// GetAirQualityDailyForecast - Get Air Quality Daily Forecast
+// Applies to: S1 pricing tiers.
+// The service provides the detailed information about the concentration of pollutant and overall status for upcoming few days air quality. The service
+// can provide forecast air quality for future one to
+// four days.
+// If the operation fails it returns the *ErrorResponse error type.
+func (client *WeatherClient) GetAirQualityDailyForecast(ctx context.Context, formatParam ResponseFormat, query string, options *WeatherGetAirQualityDailyForecastOptions) (WeatherGetAirQualityDailyForecastResponse, error) {
+	req, err := client.getAirQualityDailyForecastCreateRequest(ctx, formatParam, query, options)
+	if err != nil {
+		return WeatherGetAirQualityDailyForecastResponse{}, err
 	}
+	resp, err := client.con.Pipeline().Do(req)
+	if err != nil {
+		return WeatherGetAirQualityDailyForecastResponse{}, err
+	}
+	if !resp.HasStatusCode(http.StatusOK) {
+		return WeatherGetAirQualityDailyForecastResponse{}, client.getAirQualityDailyForecastHandleError(resp)
+	}
+	return client.getAirQualityDailyForecastHandleResponse(resp)
+}
+
+// getAirQualityDailyForecastCreateRequest creates the GetAirQualityDailyForecast request.
+func (client *WeatherClient) getAirQualityDailyForecastCreateRequest(ctx context.Context, formatParam ResponseFormat, query string, options *WeatherGetAirQualityDailyForecastOptions) (*azcore.Request, error) {
+	urlPath := "/weather/airQuality/forecast/daily/{format}"
+	if formatParam == "" {
+		return nil, errors.New("parameter formatParam cannot be empty")
+	}
+	urlPath = strings.ReplaceAll(urlPath, "{format}", url.PathEscape(string(formatParam)))
+	req, err := azcore.NewRequest(ctx, http.MethodGet, azcore.JoinPaths(client.con.Endpoint(), urlPath))
+	if err != nil {
+		return nil, err
+	}
+	req.Telemetry(telemetryInfo)
+	reqQP := req.URL.Query()
+	reqQP.Set("api-version", "1.0")
+	if options != nil && options.Language != nil {
+		reqQP.Set("language", *options.Language)
+	}
+	reqQP.Set("query", query)
+	if options != nil && options.Duration != nil {
+		reqQP.Set("duration", strconv.FormatInt(int64(*options.Duration), 10))
+	}
+	req.URL.RawQuery = reqQP.Encode()
+	if client.xmsClientID != nil {
+		req.Header.Set("x-ms-client-id", *client.xmsClientID)
+	}
+	req.Header.Set("Accept", "application/json")
+	return req, nil
+}
+
+// getAirQualityDailyForecastHandleResponse handles the GetAirQualityDailyForecast response.
+func (client *WeatherClient) getAirQualityDailyForecastHandleResponse(resp *azcore.Response) (WeatherGetAirQualityDailyForecastResponse, error) {
+	result := WeatherGetAirQualityDailyForecastResponse{RawResponse: resp.Response}
+	if err := resp.UnmarshalAsJSON(&result.DailyAirQualityForecastResponse); err != nil {
+		return WeatherGetAirQualityDailyForecastResponse{}, err
+	}
+	return result, nil
+}
+
+// getAirQualityDailyForecastHandleError handles the GetAirQualityDailyForecast error response.
+func (client *WeatherClient) getAirQualityDailyForecastHandleError(resp *azcore.Response) error {
+	body, err := resp.Payload()
+	if err != nil {
+		return azcore.NewResponseError(err, resp.Response)
+	}
+		errType := ErrorResponse{raw: string(body)}
+	if err := resp.UnmarshalAsJSON(&errType); err != nil {
+		return azcore.NewResponseError(fmt.Errorf("%s\n%s", string(body), err), resp.Response)
+	}
+	return azcore.NewResponseError(&errType, resp.Response)
+}
+
+// GetAirQualityHourlyForecast - Get Air Quality Hourly forecast
+// Applies to: S1 pricing tiers.
+// The service provides the detailed information about the concentration of pollutant and overall status for current air quality.
+// If the operation fails it returns the *ErrorResponse error type.
+func (client *WeatherClient) GetAirQualityHourlyForecast(ctx context.Context, formatParam ResponseFormat, query string, options *WeatherGetAirQualityHourlyForecastOptions) (WeatherGetAirQualityHourlyForecastResponse, error) {
+	req, err := client.getAirQualityHourlyForecastCreateRequest(ctx, formatParam, query, options)
+	if err != nil {
+		return WeatherGetAirQualityHourlyForecastResponse{}, err
+	}
+	resp, err := client.con.Pipeline().Do(req)
+	if err != nil {
+		return WeatherGetAirQualityHourlyForecastResponse{}, err
+	}
+	if !resp.HasStatusCode(http.StatusOK) {
+		return WeatherGetAirQualityHourlyForecastResponse{}, client.getAirQualityHourlyForecastHandleError(resp)
+	}
+	return client.getAirQualityHourlyForecastHandleResponse(resp)
+}
+
+// getAirQualityHourlyForecastCreateRequest creates the GetAirQualityHourlyForecast request.
+func (client *WeatherClient) getAirQualityHourlyForecastCreateRequest(ctx context.Context, formatParam ResponseFormat, query string, options *WeatherGetAirQualityHourlyForecastOptions) (*azcore.Request, error) {
+	urlPath := "/weather/airQuality/forecast/hourly/{format}"
+	if formatParam == "" {
+		return nil, errors.New("parameter formatParam cannot be empty")
+	}
+	urlPath = strings.ReplaceAll(urlPath, "{format}", url.PathEscape(string(formatParam)))
+	req, err := azcore.NewRequest(ctx, http.MethodGet, azcore.JoinPaths(client.con.Endpoint(), urlPath))
+	if err != nil {
+		return nil, err
+	}
+	req.Telemetry(telemetryInfo)
+	reqQP := req.URL.Query()
+	reqQP.Set("api-version", "1.0")
+	if options != nil && options.Language != nil {
+		reqQP.Set("language", *options.Language)
+	}
+	reqQP.Set("query", query)
+	if options != nil && options.Duration != nil {
+		reqQP.Set("duration", strconv.FormatInt(int64(*options.Duration), 10))
+	}
+	if options != nil && options.Pollutants != nil {
+		reqQP.Set("pollutants", strconv.FormatBool(*options.Pollutants))
+	}
+	req.URL.RawQuery = reqQP.Encode()
+	if client.xmsClientID != nil {
+		req.Header.Set("x-ms-client-id", *client.xmsClientID)
+	}
+	req.Header.Set("Accept", "application/json")
+	return req, nil
+}
+
+// getAirQualityHourlyForecastHandleResponse handles the GetAirQualityHourlyForecast response.
+func (client *WeatherClient) getAirQualityHourlyForecastHandleResponse(resp *azcore.Response) (WeatherGetAirQualityHourlyForecastResponse, error) {
+	result := WeatherGetAirQualityHourlyForecastResponse{RawResponse: resp.Response}
+	if err := resp.UnmarshalAsJSON(&result.HourlyAirQualityForecastResponse); err != nil {
+		return WeatherGetAirQualityHourlyForecastResponse{}, err
+	}
+	return result, nil
+}
+
+// getAirQualityHourlyForecastHandleError handles the GetAirQualityHourlyForecast error response.
+func (client *WeatherClient) getAirQualityHourlyForecastHandleError(resp *azcore.Response) error {
+	body, err := resp.Payload()
+	if err != nil {
+		return azcore.NewResponseError(err, resp.Response)
+	}
+		errType := ErrorResponse{raw: string(body)}
+	if err := resp.UnmarshalAsJSON(&errType); err != nil {
+		return azcore.NewResponseError(fmt.Errorf("%s\n%s", string(body), err), resp.Response)
+	}
+	return azcore.NewResponseError(&errType, resp.Response)
+}
+
+// GetClimoSummary - Get Climo Month Summary
+// Applies to: S0 and S1 pricing tiers.
+// The service returns climatology data such as month summary for a given coordinate location.
+// If the operation fails it returns the *ErrorResponse error type.
+func (client *WeatherClient) GetClimoSummary(ctx context.Context, formatParam ResponseFormat, query string, month string, options *WeatherGetClimoSummaryOptions) (WeatherGetClimoSummaryResponse, error) {
+	req, err := client.getClimoSummaryCreateRequest(ctx, formatParam, query, month, options)
+	if err != nil {
+		return WeatherGetClimoSummaryResponse{}, err
+	}
+	resp, err := client.con.Pipeline().Do(req)
+	if err != nil {
+		return WeatherGetClimoSummaryResponse{}, err
+	}
+	if !resp.HasStatusCode(http.StatusOK) {
+		return WeatherGetClimoSummaryResponse{}, client.getClimoSummaryHandleError(resp)
+	}
+	return client.getClimoSummaryHandleResponse(resp)
+}
+
+// getClimoSummaryCreateRequest creates the GetClimoSummary request.
+func (client *WeatherClient) getClimoSummaryCreateRequest(ctx context.Context, formatParam ResponseFormat, query string, month string, options *WeatherGetClimoSummaryOptions) (*azcore.Request, error) {
+	urlPath := "/weather/climo/summary/{format}"
+	if formatParam == "" {
+		return nil, errors.New("parameter formatParam cannot be empty")
+	}
+	urlPath = strings.ReplaceAll(urlPath, "{format}", url.PathEscape(string(formatParam)))
+	req, err := azcore.NewRequest(ctx, http.MethodGet, azcore.JoinPaths(client.con.Endpoint(), urlPath))
+	if err != nil {
+		return nil, err
+	}
+	req.Telemetry(telemetryInfo)
+	reqQP := req.URL.Query()
+	reqQP.Set("api-version", "1.0")
+	reqQP.Set("query", query)
+	reqQP.Set("month", month)
+	if options != nil && options.Unit != nil {
+		reqQP.Set("unit", string(*options.Unit))
+	}
+	if options != nil && options.Language != nil {
+		reqQP.Set("language", *options.Language)
+	}
+	req.URL.RawQuery = reqQP.Encode()
+	if client.xmsClientID != nil {
+		req.Header.Set("x-ms-client-id", *client.xmsClientID)
+	}
+	req.Header.Set("Accept", "application/json")
+	return req, nil
+}
+
+// getClimoSummaryHandleResponse handles the GetClimoSummary response.
+func (client *WeatherClient) getClimoSummaryHandleResponse(resp *azcore.Response) (WeatherGetClimoSummaryResponse, error) {
+	result := WeatherGetClimoSummaryResponse{RawResponse: resp.Response}
+	if err := resp.UnmarshalAsJSON(&result.ClimoSummaryResponse); err != nil {
+		return WeatherGetClimoSummaryResponse{}, err
+	}
+	return result, nil
+}
+
+// getClimoSummaryHandleError handles the GetClimoSummary error response.
+func (client *WeatherClient) getClimoSummaryHandleError(resp *azcore.Response) error {
+	body, err := resp.Payload()
+	if err != nil {
+		return azcore.NewResponseError(err, resp.Response)
+	}
+		errType := ErrorResponse{raw: string(body)}
+	if err := resp.UnmarshalAsJSON(&errType); err != nil {
+		return azcore.NewResponseError(fmt.Errorf("%s\n%s", string(body), err), resp.Response)
+	}
+	return azcore.NewResponseError(&errType, resp.Response)
+}
+
+// GetCurrentAirQuality - Get Current Air Quality
+// Applies to: S0 and S1 pricing tiers.
+// The service provides the detailed information about the concentration of pollutant and overall status for current air quality.
+// If the operation fails it returns the *ErrorResponse error type.
+func (client *WeatherClient) GetCurrentAirQuality(ctx context.Context, formatParam ResponseFormat, query string, options *WeatherGetCurrentAirQualityOptions) (WeatherGetCurrentAirQualityResponse, error) {
+	req, err := client.getCurrentAirQualityCreateRequest(ctx, formatParam, query, options)
+	if err != nil {
+		return WeatherGetCurrentAirQualityResponse{}, err
+	}
+	resp, err := client.con.Pipeline().Do(req)
+	if err != nil {
+		return WeatherGetCurrentAirQualityResponse{}, err
+	}
+	if !resp.HasStatusCode(http.StatusOK) {
+		return WeatherGetCurrentAirQualityResponse{}, client.getCurrentAirQualityHandleError(resp)
+	}
+	return client.getCurrentAirQualityHandleResponse(resp)
+}
+
+// getCurrentAirQualityCreateRequest creates the GetCurrentAirQuality request.
+func (client *WeatherClient) getCurrentAirQualityCreateRequest(ctx context.Context, formatParam ResponseFormat, query string, options *WeatherGetCurrentAirQualityOptions) (*azcore.Request, error) {
+	urlPath := "/weather/airQuality/current/{format}"
+	if formatParam == "" {
+		return nil, errors.New("parameter formatParam cannot be empty")
+	}
+	urlPath = strings.ReplaceAll(urlPath, "{format}", url.PathEscape(string(formatParam)))
+	req, err := azcore.NewRequest(ctx, http.MethodGet, azcore.JoinPaths(client.con.Endpoint(), urlPath))
+	if err != nil {
+		return nil, err
+	}
+	req.Telemetry(telemetryInfo)
+	reqQP := req.URL.Query()
+	reqQP.Set("api-version", "1.0")
+	if options != nil && options.Language != nil {
+		reqQP.Set("language", *options.Language)
+	}
+	reqQP.Set("query", query)
+	if options != nil && options.Pollutants != nil {
+		reqQP.Set("pollutants", strconv.FormatBool(*options.Pollutants))
+	}
+	req.URL.RawQuery = reqQP.Encode()
+	if client.xmsClientID != nil {
+		req.Header.Set("x-ms-client-id", *client.xmsClientID)
+	}
+	req.Header.Set("Accept", "application/json")
+	return req, nil
+}
+
+// getCurrentAirQualityHandleResponse handles the GetCurrentAirQuality response.
+func (client *WeatherClient) getCurrentAirQualityHandleResponse(resp *azcore.Response) (WeatherGetCurrentAirQualityResponse, error) {
+	result := WeatherGetCurrentAirQualityResponse{RawResponse: resp.Response}
+	if err := resp.UnmarshalAsJSON(&result.CurrentAirQualityResponse); err != nil {
+		return WeatherGetCurrentAirQualityResponse{}, err
+	}
+	return result, nil
+}
+
+// getCurrentAirQualityHandleError handles the GetCurrentAirQuality error response.
+func (client *WeatherClient) getCurrentAirQualityHandleError(resp *azcore.Response) error {
+	body, err := resp.Payload()
+	if err != nil {
+		return azcore.NewResponseError(err, resp.Response)
+	}
+		errType := ErrorResponse{raw: string(body)}
+	if err := resp.UnmarshalAsJSON(&errType); err != nil {
+		return azcore.NewResponseError(fmt.Errorf("%s\n%s", string(body), err), resp.Response)
+	}
+	return azcore.NewResponseError(&errType, resp.Response)
 }
 
 // GetCurrentConditions - Get Current Conditions
@@ -42,17 +324,17 @@ func NewWeatherClient(con *Connection, xmsClientID *string) *WeatherClient {
 // description of the weather conditions, weather
 // icon, precipitation indicator flags, and temperature. Additional details such as RealFeel™ Temperature and UV index are also returned.
 // If the operation fails it returns the *ErrorResponse error type.
-func (client *WeatherClient) GetCurrentConditions(ctx context.Context, formatParam ResponseFormat, query string, options *WeatherGetCurrentConditionsOptions) (CurrentConditionsResponseResponse, error) {
+func (client *WeatherClient) GetCurrentConditions(ctx context.Context, formatParam ResponseFormat, query string, options *WeatherGetCurrentConditionsOptions) (WeatherGetCurrentConditionsResponse, error) {
 	req, err := client.getCurrentConditionsCreateRequest(ctx, formatParam, query, options)
 	if err != nil {
-		return CurrentConditionsResponseResponse{}, err
+		return WeatherGetCurrentConditionsResponse{}, err
 	}
 	resp, err := client.con.Pipeline().Do(req)
 	if err != nil {
-		return CurrentConditionsResponseResponse{}, err
+		return WeatherGetCurrentConditionsResponse{}, err
 	}
 	if !resp.HasStatusCode(http.StatusOK) {
-		return CurrentConditionsResponseResponse{}, client.getCurrentConditionsHandleError(resp)
+		return WeatherGetCurrentConditionsResponse{}, client.getCurrentConditionsHandleError(resp)
 	}
 	return client.getCurrentConditionsHandleResponse(resp)
 }
@@ -93,12 +375,12 @@ func (client *WeatherClient) getCurrentConditionsCreateRequest(ctx context.Conte
 }
 
 // getCurrentConditionsHandleResponse handles the GetCurrentConditions response.
-func (client *WeatherClient) getCurrentConditionsHandleResponse(resp *azcore.Response) (CurrentConditionsResponseResponse, error) {
-	var val *CurrentConditionsResponse
-	if err := resp.UnmarshalAsJSON(&val); err != nil {
-		return CurrentConditionsResponseResponse{}, err
+func (client *WeatherClient) getCurrentConditionsHandleResponse(resp *azcore.Response) (WeatherGetCurrentConditionsResponse, error) {
+	result := WeatherGetCurrentConditionsResponse{RawResponse: resp.Response}
+	if err := resp.UnmarshalAsJSON(&result.CurrentConditionsResponse); err != nil {
+		return WeatherGetCurrentConditionsResponse{}, err
 	}
-	return CurrentConditionsResponseResponse{RawResponse: resp.Response, CurrentConditionsResponse: val}, nil
+	return result, nil
 }
 
 // getCurrentConditionsHandleError handles the GetCurrentConditions error response.
@@ -107,7 +389,229 @@ func (client *WeatherClient) getCurrentConditionsHandleError(resp *azcore.Respon
 	if err != nil {
 		return azcore.NewResponseError(err, resp.Response)
 	}
-	errType := ErrorResponse{raw: string(body)}
+		errType := ErrorResponse{raw: string(body)}
+	if err := resp.UnmarshalAsJSON(&errType); err != nil {
+		return azcore.NewResponseError(fmt.Errorf("%s\n%s", string(body), err), resp.Response)
+	}
+	return azcore.NewResponseError(&errType, resp.Response)
+}
+
+// GetDailyClimoActuals - Get Daily Climo Actuals
+// Applies to: S0 and S1 pricing tiers.
+// The service returns climatology data such as past daily actuals for a given coordinate location.
+// If the operation fails it returns the *ErrorResponse error type.
+func (client *WeatherClient) GetDailyClimoActuals(ctx context.Context, formatParam ResponseFormat, query string, start string, options *WeatherGetDailyClimoActualsOptions) (WeatherGetDailyClimoActualsResponse, error) {
+	req, err := client.getDailyClimoActualsCreateRequest(ctx, formatParam, query, start, options)
+	if err != nil {
+		return WeatherGetDailyClimoActualsResponse{}, err
+	}
+	resp, err := client.con.Pipeline().Do(req)
+	if err != nil {
+		return WeatherGetDailyClimoActualsResponse{}, err
+	}
+	if !resp.HasStatusCode(http.StatusOK) {
+		return WeatherGetDailyClimoActualsResponse{}, client.getDailyClimoActualsHandleError(resp)
+	}
+	return client.getDailyClimoActualsHandleResponse(resp)
+}
+
+// getDailyClimoActualsCreateRequest creates the GetDailyClimoActuals request.
+func (client *WeatherClient) getDailyClimoActualsCreateRequest(ctx context.Context, formatParam ResponseFormat, query string, start string, options *WeatherGetDailyClimoActualsOptions) (*azcore.Request, error) {
+	urlPath := "/weather/climo/actuals/daily/{format}"
+	if formatParam == "" {
+		return nil, errors.New("parameter formatParam cannot be empty")
+	}
+	urlPath = strings.ReplaceAll(urlPath, "{format}", url.PathEscape(string(formatParam)))
+	req, err := azcore.NewRequest(ctx, http.MethodGet, azcore.JoinPaths(client.con.Endpoint(), urlPath))
+	if err != nil {
+		return nil, err
+	}
+	req.Telemetry(telemetryInfo)
+	reqQP := req.URL.Query()
+	reqQP.Set("api-version", "1.0")
+	reqQP.Set("query", query)
+	reqQP.Set("start", start)
+	if options != nil && options.Unit != nil {
+		reqQP.Set("unit", string(*options.Unit))
+	}
+	if options != nil && options.Duration != nil {
+		reqQP.Set("duration", strconv.FormatInt(int64(*options.Duration), 10))
+	}
+	if options != nil && options.Language != nil {
+		reqQP.Set("language", *options.Language)
+	}
+	req.URL.RawQuery = reqQP.Encode()
+	if client.xmsClientID != nil {
+		req.Header.Set("x-ms-client-id", *client.xmsClientID)
+	}
+	req.Header.Set("Accept", "application/json")
+	return req, nil
+}
+
+// getDailyClimoActualsHandleResponse handles the GetDailyClimoActuals response.
+func (client *WeatherClient) getDailyClimoActualsHandleResponse(resp *azcore.Response) (WeatherGetDailyClimoActualsResponse, error) {
+	result := WeatherGetDailyClimoActualsResponse{RawResponse: resp.Response}
+	if err := resp.UnmarshalAsJSON(&result.DailyClimoActualsResponse); err != nil {
+		return WeatherGetDailyClimoActualsResponse{}, err
+	}
+	return result, nil
+}
+
+// getDailyClimoActualsHandleError handles the GetDailyClimoActuals error response.
+func (client *WeatherClient) getDailyClimoActualsHandleError(resp *azcore.Response) error {
+	body, err := resp.Payload()
+	if err != nil {
+		return azcore.NewResponseError(err, resp.Response)
+	}
+		errType := ErrorResponse{raw: string(body)}
+	if err := resp.UnmarshalAsJSON(&errType); err != nil {
+		return azcore.NewResponseError(fmt.Errorf("%s\n%s", string(body), err), resp.Response)
+	}
+	return azcore.NewResponseError(&errType, resp.Response)
+}
+
+// GetDailyClimoNormals - Get Daily Climo Normals
+// Applies to: S0 and S1 pricing tiers.
+// The service returns climatology data such as past daily normals for a given coordinate location.
+// If the operation fails it returns the *ErrorResponse error type.
+func (client *WeatherClient) GetDailyClimoNormals(ctx context.Context, formatParam ResponseFormat, query string, start string, options *WeatherGetDailyClimoNormalsOptions) (WeatherGetDailyClimoNormalsResponse, error) {
+	req, err := client.getDailyClimoNormalsCreateRequest(ctx, formatParam, query, start, options)
+	if err != nil {
+		return WeatherGetDailyClimoNormalsResponse{}, err
+	}
+	resp, err := client.con.Pipeline().Do(req)
+	if err != nil {
+		return WeatherGetDailyClimoNormalsResponse{}, err
+	}
+	if !resp.HasStatusCode(http.StatusOK) {
+		return WeatherGetDailyClimoNormalsResponse{}, client.getDailyClimoNormalsHandleError(resp)
+	}
+	return client.getDailyClimoNormalsHandleResponse(resp)
+}
+
+// getDailyClimoNormalsCreateRequest creates the GetDailyClimoNormals request.
+func (client *WeatherClient) getDailyClimoNormalsCreateRequest(ctx context.Context, formatParam ResponseFormat, query string, start string, options *WeatherGetDailyClimoNormalsOptions) (*azcore.Request, error) {
+	urlPath := "/weather/climo/normals/daily/{format}"
+	if formatParam == "" {
+		return nil, errors.New("parameter formatParam cannot be empty")
+	}
+	urlPath = strings.ReplaceAll(urlPath, "{format}", url.PathEscape(string(formatParam)))
+	req, err := azcore.NewRequest(ctx, http.MethodGet, azcore.JoinPaths(client.con.Endpoint(), urlPath))
+	if err != nil {
+		return nil, err
+	}
+	req.Telemetry(telemetryInfo)
+	reqQP := req.URL.Query()
+	reqQP.Set("api-version", "1.0")
+	reqQP.Set("query", query)
+	reqQP.Set("start", start)
+	if options != nil && options.Unit != nil {
+		reqQP.Set("unit", string(*options.Unit))
+	}
+	if options != nil && options.Duration != nil {
+		reqQP.Set("duration", strconv.FormatInt(int64(*options.Duration), 10))
+	}
+	if options != nil && options.Language != nil {
+		reqQP.Set("language", *options.Language)
+	}
+	req.URL.RawQuery = reqQP.Encode()
+	if client.xmsClientID != nil {
+		req.Header.Set("x-ms-client-id", *client.xmsClientID)
+	}
+	req.Header.Set("Accept", "application/json")
+	return req, nil
+}
+
+// getDailyClimoNormalsHandleResponse handles the GetDailyClimoNormals response.
+func (client *WeatherClient) getDailyClimoNormalsHandleResponse(resp *azcore.Response) (WeatherGetDailyClimoNormalsResponse, error) {
+	result := WeatherGetDailyClimoNormalsResponse{RawResponse: resp.Response}
+	if err := resp.UnmarshalAsJSON(&result.DailyClimoNormalsResponse); err != nil {
+		return WeatherGetDailyClimoNormalsResponse{}, err
+	}
+	return result, nil
+}
+
+// getDailyClimoNormalsHandleError handles the GetDailyClimoNormals error response.
+func (client *WeatherClient) getDailyClimoNormalsHandleError(resp *azcore.Response) error {
+	body, err := resp.Payload()
+	if err != nil {
+		return azcore.NewResponseError(err, resp.Response)
+	}
+		errType := ErrorResponse{raw: string(body)}
+	if err := resp.UnmarshalAsJSON(&errType); err != nil {
+		return azcore.NewResponseError(fmt.Errorf("%s\n%s", string(body), err), resp.Response)
+	}
+	return azcore.NewResponseError(&errType, resp.Response)
+}
+
+// GetDailyClimoRecords - Get Daily Climo Records
+// Applies to: S0 and S1 pricing tiers.
+// The service returns climatology data such as past daily records for a given coordinate location.
+// If the operation fails it returns the *ErrorResponse error type.
+func (client *WeatherClient) GetDailyClimoRecords(ctx context.Context, formatParam ResponseFormat, query string, start string, options *WeatherGetDailyClimoRecordsOptions) (WeatherGetDailyClimoRecordsResponse, error) {
+	req, err := client.getDailyClimoRecordsCreateRequest(ctx, formatParam, query, start, options)
+	if err != nil {
+		return WeatherGetDailyClimoRecordsResponse{}, err
+	}
+	resp, err := client.con.Pipeline().Do(req)
+	if err != nil {
+		return WeatherGetDailyClimoRecordsResponse{}, err
+	}
+	if !resp.HasStatusCode(http.StatusOK) {
+		return WeatherGetDailyClimoRecordsResponse{}, client.getDailyClimoRecordsHandleError(resp)
+	}
+	return client.getDailyClimoRecordsHandleResponse(resp)
+}
+
+// getDailyClimoRecordsCreateRequest creates the GetDailyClimoRecords request.
+func (client *WeatherClient) getDailyClimoRecordsCreateRequest(ctx context.Context, formatParam ResponseFormat, query string, start string, options *WeatherGetDailyClimoRecordsOptions) (*azcore.Request, error) {
+	urlPath := "/weather/climo/records/daily/{format}"
+	if formatParam == "" {
+		return nil, errors.New("parameter formatParam cannot be empty")
+	}
+	urlPath = strings.ReplaceAll(urlPath, "{format}", url.PathEscape(string(formatParam)))
+	req, err := azcore.NewRequest(ctx, http.MethodGet, azcore.JoinPaths(client.con.Endpoint(), urlPath))
+	if err != nil {
+		return nil, err
+	}
+	req.Telemetry(telemetryInfo)
+	reqQP := req.URL.Query()
+	reqQP.Set("api-version", "1.0")
+	reqQP.Set("query", query)
+	reqQP.Set("start", start)
+	if options != nil && options.Unit != nil {
+		reqQP.Set("unit", string(*options.Unit))
+	}
+	if options != nil && options.Duration != nil {
+		reqQP.Set("duration", strconv.FormatInt(int64(*options.Duration), 10))
+	}
+	if options != nil && options.Language != nil {
+		reqQP.Set("language", *options.Language)
+	}
+	req.URL.RawQuery = reqQP.Encode()
+	if client.xmsClientID != nil {
+		req.Header.Set("x-ms-client-id", *client.xmsClientID)
+	}
+	req.Header.Set("Accept", "application/json")
+	return req, nil
+}
+
+// getDailyClimoRecordsHandleResponse handles the GetDailyClimoRecords response.
+func (client *WeatherClient) getDailyClimoRecordsHandleResponse(resp *azcore.Response) (WeatherGetDailyClimoRecordsResponse, error) {
+	result := WeatherGetDailyClimoRecordsResponse{RawResponse: resp.Response}
+	if err := resp.UnmarshalAsJSON(&result.DailyClimoRecordsResponse); err != nil {
+		return WeatherGetDailyClimoRecordsResponse{}, err
+	}
+	return result, nil
+}
+
+// getDailyClimoRecordsHandleError handles the GetDailyClimoRecords error response.
+func (client *WeatherClient) getDailyClimoRecordsHandleError(resp *azcore.Response) error {
+	body, err := resp.Payload()
+	if err != nil {
+		return azcore.NewResponseError(err, resp.Response)
+	}
+		errType := ErrorResponse{raw: string(body)}
 	if err := resp.UnmarshalAsJSON(&errType); err != nil {
 		return azcore.NewResponseError(fmt.Errorf("%s\n%s", string(body), err), resp.Response)
 	}
@@ -121,17 +625,17 @@ func (client *WeatherClient) getCurrentConditionsHandleError(resp *azcore.Respon
 // temperature, wind, precipitation, air quality, and UV index.
 // In S0 you can request daily forecast for the next 1, 5, 10, and 15 days. In S1 you can also request daily forecast for the next 25 days, and 45 days.
 // If the operation fails it returns the *ErrorResponse error type.
-func (client *WeatherClient) GetDailyForecast(ctx context.Context, formatParam ResponseFormat, query string, options *WeatherGetDailyForecastOptions) (DailyForecastResponseResponse, error) {
+func (client *WeatherClient) GetDailyForecast(ctx context.Context, formatParam ResponseFormat, query string, options *WeatherGetDailyForecastOptions) (WeatherGetDailyForecastResponse, error) {
 	req, err := client.getDailyForecastCreateRequest(ctx, formatParam, query, options)
 	if err != nil {
-		return DailyForecastResponseResponse{}, err
+		return WeatherGetDailyForecastResponse{}, err
 	}
 	resp, err := client.con.Pipeline().Do(req)
 	if err != nil {
-		return DailyForecastResponseResponse{}, err
+		return WeatherGetDailyForecastResponse{}, err
 	}
 	if !resp.HasStatusCode(http.StatusOK) {
-		return DailyForecastResponseResponse{}, client.getDailyForecastHandleError(resp)
+		return WeatherGetDailyForecastResponse{}, client.getDailyForecastHandleError(resp)
 	}
 	return client.getDailyForecastHandleResponse(resp)
 }
@@ -169,12 +673,12 @@ func (client *WeatherClient) getDailyForecastCreateRequest(ctx context.Context, 
 }
 
 // getDailyForecastHandleResponse handles the GetDailyForecast response.
-func (client *WeatherClient) getDailyForecastHandleResponse(resp *azcore.Response) (DailyForecastResponseResponse, error) {
-	var val *DailyForecastResponse
-	if err := resp.UnmarshalAsJSON(&val); err != nil {
-		return DailyForecastResponseResponse{}, err
+func (client *WeatherClient) getDailyForecastHandleResponse(resp *azcore.Response) (WeatherGetDailyForecastResponse, error) {
+	result := WeatherGetDailyForecastResponse{RawResponse: resp.Response}
+	if err := resp.UnmarshalAsJSON(&result.DailyForecastResponse); err != nil {
+		return WeatherGetDailyForecastResponse{}, err
 	}
-	return DailyForecastResponseResponse{RawResponse: resp.Response, DailyForecastResponse: val}, nil
+	return result, nil
 }
 
 // getDailyForecastHandleError handles the GetDailyForecast error response.
@@ -183,7 +687,7 @@ func (client *WeatherClient) getDailyForecastHandleError(resp *azcore.Response) 
 	if err != nil {
 		return azcore.NewResponseError(err, resp.Response)
 	}
-	errType := ErrorResponse{raw: string(body)}
+		errType := ErrorResponse{raw: string(body)}
 	if err := resp.UnmarshalAsJSON(&errType); err != nil {
 		return azcore.NewResponseError(fmt.Errorf("%s\n%s", string(body), err), resp.Response)
 	}
@@ -200,17 +704,17 @@ func (client *WeatherClient) getDailyForecastHandleError(resp *azcore.Response) 
 // predicted index values. The service returns in
 // daily indices values for current and next 5, 10 and 15 days starting from current day.
 // If the operation fails it returns the *ErrorResponse error type.
-func (client *WeatherClient) GetDailyIndices(ctx context.Context, formatParam ResponseFormat, query string, options *WeatherGetDailyIndicesOptions) (DailyIndicesResponseResponse, error) {
+func (client *WeatherClient) GetDailyIndices(ctx context.Context, formatParam ResponseFormat, query string, options *WeatherGetDailyIndicesOptions) (WeatherGetDailyIndicesResponse, error) {
 	req, err := client.getDailyIndicesCreateRequest(ctx, formatParam, query, options)
 	if err != nil {
-		return DailyIndicesResponseResponse{}, err
+		return WeatherGetDailyIndicesResponse{}, err
 	}
 	resp, err := client.con.Pipeline().Do(req)
 	if err != nil {
-		return DailyIndicesResponseResponse{}, err
+		return WeatherGetDailyIndicesResponse{}, err
 	}
 	if !resp.HasStatusCode(http.StatusOK) {
-		return DailyIndicesResponseResponse{}, client.getDailyIndicesHandleError(resp)
+		return WeatherGetDailyIndicesResponse{}, client.getDailyIndicesHandleError(resp)
 	}
 	return client.getDailyIndicesHandleResponse(resp)
 }
@@ -251,12 +755,12 @@ func (client *WeatherClient) getDailyIndicesCreateRequest(ctx context.Context, f
 }
 
 // getDailyIndicesHandleResponse handles the GetDailyIndices response.
-func (client *WeatherClient) getDailyIndicesHandleResponse(resp *azcore.Response) (DailyIndicesResponseResponse, error) {
-	var val *DailyIndicesResponse
-	if err := resp.UnmarshalAsJSON(&val); err != nil {
-		return DailyIndicesResponseResponse{}, err
+func (client *WeatherClient) getDailyIndicesHandleResponse(resp *azcore.Response) (WeatherGetDailyIndicesResponse, error) {
+	result := WeatherGetDailyIndicesResponse{RawResponse: resp.Response}
+	if err := resp.UnmarshalAsJSON(&result.DailyIndicesResponse); err != nil {
+		return WeatherGetDailyIndicesResponse{}, err
 	}
-	return DailyIndicesResponseResponse{RawResponse: resp.Response, DailyIndicesResponse: val}, nil
+	return result, nil
 }
 
 // getDailyIndicesHandleError handles the GetDailyIndices error response.
@@ -265,7 +769,7 @@ func (client *WeatherClient) getDailyIndicesHandleError(resp *azcore.Response) e
 	if err != nil {
 		return azcore.NewResponseError(err, resp.Response)
 	}
-	errType := ErrorResponse{raw: string(body)}
+		errType := ErrorResponse{raw: string(body)}
 	if err := resp.UnmarshalAsJSON(&errType); err != nil {
 		return azcore.NewResponseError(fmt.Errorf("%s\n%s", string(body), err), resp.Response)
 	}
@@ -280,17 +784,17 @@ func (client *WeatherClient) getDailyIndicesHandleError(resp *azcore.Response) e
 // In S0 you can request hourly forecast for the next 1, 12, 24 hours (1 day), and 72 hours (3 days). In S1 you can also request hourly forecast for the
 // next 120 (5 days) and 240 hours (10 days).
 // If the operation fails it returns the *ErrorResponse error type.
-func (client *WeatherClient) GetHourlyForecast(ctx context.Context, formatParam ResponseFormat, query string, options *WeatherGetHourlyForecastOptions) (HourlyForecastResponseResponse, error) {
+func (client *WeatherClient) GetHourlyForecast(ctx context.Context, formatParam ResponseFormat, query string, options *WeatherGetHourlyForecastOptions) (WeatherGetHourlyForecastResponse, error) {
 	req, err := client.getHourlyForecastCreateRequest(ctx, formatParam, query, options)
 	if err != nil {
-		return HourlyForecastResponseResponse{}, err
+		return WeatherGetHourlyForecastResponse{}, err
 	}
 	resp, err := client.con.Pipeline().Do(req)
 	if err != nil {
-		return HourlyForecastResponseResponse{}, err
+		return WeatherGetHourlyForecastResponse{}, err
 	}
 	if !resp.HasStatusCode(http.StatusOK) {
-		return HourlyForecastResponseResponse{}, client.getHourlyForecastHandleError(resp)
+		return WeatherGetHourlyForecastResponse{}, client.getHourlyForecastHandleError(resp)
 	}
 	return client.getHourlyForecastHandleResponse(resp)
 }
@@ -328,12 +832,12 @@ func (client *WeatherClient) getHourlyForecastCreateRequest(ctx context.Context,
 }
 
 // getHourlyForecastHandleResponse handles the GetHourlyForecast response.
-func (client *WeatherClient) getHourlyForecastHandleResponse(resp *azcore.Response) (HourlyForecastResponseResponse, error) {
-	var val *HourlyForecastResponse
-	if err := resp.UnmarshalAsJSON(&val); err != nil {
-		return HourlyForecastResponseResponse{}, err
+func (client *WeatherClient) getHourlyForecastHandleResponse(resp *azcore.Response) (WeatherGetHourlyForecastResponse, error) {
+	result := WeatherGetHourlyForecastResponse{RawResponse: resp.Response}
+	if err := resp.UnmarshalAsJSON(&result.HourlyForecastResponse); err != nil {
+		return WeatherGetHourlyForecastResponse{}, err
 	}
-	return HourlyForecastResponseResponse{RawResponse: resp.Response, HourlyForecastResponse: val}, nil
+	return result, nil
 }
 
 // getHourlyForecastHandleError handles the GetHourlyForecast error response.
@@ -342,7 +846,7 @@ func (client *WeatherClient) getHourlyForecastHandleError(resp *azcore.Response)
 	if err != nil {
 		return azcore.NewResponseError(err, resp.Response)
 	}
-	errType := ErrorResponse{raw: string(body)}
+		errType := ErrorResponse{raw: string(body)}
 	if err := resp.UnmarshalAsJSON(&errType); err != nil {
 		return azcore.NewResponseError(fmt.Errorf("%s\n%s", string(body), err), resp.Response)
 	}
@@ -355,17 +859,17 @@ func (client *WeatherClient) getHourlyForecastHandleError(resp *azcore.Response)
 // the interval of 1, 5 and 15 minutes. The response
 // will include details such as the type of precipitation (including rain, snow, or a mixture of both), start time, and precipitation intensity value (dBZ).
 // If the operation fails it returns the *ErrorResponse error type.
-func (client *WeatherClient) GetMinuteForecast(ctx context.Context, formatParam ResponseFormat, query string, options *WeatherGetMinuteForecastOptions) (MinuteForecastResponseResponse, error) {
+func (client *WeatherClient) GetMinuteForecast(ctx context.Context, formatParam ResponseFormat, query string, options *WeatherGetMinuteForecastOptions) (WeatherGetMinuteForecastResponse, error) {
 	req, err := client.getMinuteForecastCreateRequest(ctx, formatParam, query, options)
 	if err != nil {
-		return MinuteForecastResponseResponse{}, err
+		return WeatherGetMinuteForecastResponse{}, err
 	}
 	resp, err := client.con.Pipeline().Do(req)
 	if err != nil {
-		return MinuteForecastResponseResponse{}, err
+		return WeatherGetMinuteForecastResponse{}, err
 	}
 	if !resp.HasStatusCode(http.StatusOK) {
-		return MinuteForecastResponseResponse{}, client.getMinuteForecastHandleError(resp)
+		return WeatherGetMinuteForecastResponse{}, client.getMinuteForecastHandleError(resp)
 	}
 	return client.getMinuteForecastHandleResponse(resp)
 }
@@ -400,12 +904,12 @@ func (client *WeatherClient) getMinuteForecastCreateRequest(ctx context.Context,
 }
 
 // getMinuteForecastHandleResponse handles the GetMinuteForecast response.
-func (client *WeatherClient) getMinuteForecastHandleResponse(resp *azcore.Response) (MinuteForecastResponseResponse, error) {
-	var val *MinuteForecastResponse
-	if err := resp.UnmarshalAsJSON(&val); err != nil {
-		return MinuteForecastResponseResponse{}, err
+func (client *WeatherClient) getMinuteForecastHandleResponse(resp *azcore.Response) (WeatherGetMinuteForecastResponse, error) {
+	result := WeatherGetMinuteForecastResponse{RawResponse: resp.Response}
+	if err := resp.UnmarshalAsJSON(&result.MinuteForecastResponse); err != nil {
+		return WeatherGetMinuteForecastResponse{}, err
 	}
-	return MinuteForecastResponseResponse{RawResponse: resp.Response, MinuteForecastResponse: val}, nil
+	return result, nil
 }
 
 // getMinuteForecastHandleError handles the GetMinuteForecast error response.
@@ -414,7 +918,7 @@ func (client *WeatherClient) getMinuteForecastHandleError(resp *azcore.Response)
 	if err != nil {
 		return azcore.NewResponseError(err, resp.Response)
 	}
-	errType := ErrorResponse{raw: string(body)}
+		errType := ErrorResponse{raw: string(body)}
 	if err := resp.UnmarshalAsJSON(&errType); err != nil {
 		return azcore.NewResponseError(fmt.Errorf("%s\n%s", string(body), err), resp.Response)
 	}
@@ -427,17 +931,17 @@ func (client *WeatherClient) getMinuteForecastHandleError(resp *azcore.Response)
 // of the day - morning, afternoon, evening, and
 // overnight. Details such as temperature, humidity, wind, precipitation, and UV index are returned.
 // If the operation fails it returns the *ErrorResponse error type.
-func (client *WeatherClient) GetQuarterDayForecast(ctx context.Context, formatParam ResponseFormat, query string, options *WeatherGetQuarterDayForecastOptions) (QuarterDayForecastResponseResponse, error) {
+func (client *WeatherClient) GetQuarterDayForecast(ctx context.Context, formatParam ResponseFormat, query string, options *WeatherGetQuarterDayForecastOptions) (WeatherGetQuarterDayForecastResponse, error) {
 	req, err := client.getQuarterDayForecastCreateRequest(ctx, formatParam, query, options)
 	if err != nil {
-		return QuarterDayForecastResponseResponse{}, err
+		return WeatherGetQuarterDayForecastResponse{}, err
 	}
 	resp, err := client.con.Pipeline().Do(req)
 	if err != nil {
-		return QuarterDayForecastResponseResponse{}, err
+		return WeatherGetQuarterDayForecastResponse{}, err
 	}
 	if !resp.HasStatusCode(http.StatusOK) {
-		return QuarterDayForecastResponseResponse{}, client.getQuarterDayForecastHandleError(resp)
+		return WeatherGetQuarterDayForecastResponse{}, client.getQuarterDayForecastHandleError(resp)
 	}
 	return client.getQuarterDayForecastHandleResponse(resp)
 }
@@ -475,12 +979,12 @@ func (client *WeatherClient) getQuarterDayForecastCreateRequest(ctx context.Cont
 }
 
 // getQuarterDayForecastHandleResponse handles the GetQuarterDayForecast response.
-func (client *WeatherClient) getQuarterDayForecastHandleResponse(resp *azcore.Response) (QuarterDayForecastResponseResponse, error) {
-	var val *QuarterDayForecastResponse
-	if err := resp.UnmarshalAsJSON(&val); err != nil {
-		return QuarterDayForecastResponseResponse{}, err
+func (client *WeatherClient) getQuarterDayForecastHandleResponse(resp *azcore.Response) (WeatherGetQuarterDayForecastResponse, error) {
+	result := WeatherGetQuarterDayForecastResponse{RawResponse: resp.Response}
+	if err := resp.UnmarshalAsJSON(&result.QuarterDayForecastResponse); err != nil {
+		return WeatherGetQuarterDayForecastResponse{}, err
 	}
-	return QuarterDayForecastResponseResponse{RawResponse: resp.Response, QuarterDayForecastResponse: val}, nil
+	return result, nil
 }
 
 // getQuarterDayForecastHandleError handles the GetQuarterDayForecast error response.
@@ -489,7 +993,7 @@ func (client *WeatherClient) getQuarterDayForecastHandleError(resp *azcore.Respo
 	if err != nil {
 		return azcore.NewResponseError(err, resp.Response)
 	}
-	errType := ErrorResponse{raw: string(body)}
+		errType := ErrorResponse{raw: string(body)}
 	if err := resp.UnmarshalAsJSON(&errType); err != nil {
 		return azcore.NewResponseError(fmt.Errorf("%s\n%s", string(body), err), resp.Response)
 	}
@@ -507,17 +1011,17 @@ func (client *WeatherClient) getQuarterDayForecastHandleError(resp *azcore.Respo
 // alert type, category, level and detailed description about the active severe alerts for the requested location, like hurricanes, thunderstorms, lightning,
 // heat waves or forest fires.
 // If the operation fails it returns the *ErrorResponse error type.
-func (client *WeatherClient) GetSevereWeatherAlerts(ctx context.Context, formatParam ResponseFormat, query string, options *WeatherGetSevereWeatherAlertsOptions) (SevereWeatherAlertsResponseResponse, error) {
+func (client *WeatherClient) GetSevereWeatherAlerts(ctx context.Context, formatParam ResponseFormat, query string, options *WeatherGetSevereWeatherAlertsOptions) (WeatherGetSevereWeatherAlertsResponse, error) {
 	req, err := client.getSevereWeatherAlertsCreateRequest(ctx, formatParam, query, options)
 	if err != nil {
-		return SevereWeatherAlertsResponseResponse{}, err
+		return WeatherGetSevereWeatherAlertsResponse{}, err
 	}
 	resp, err := client.con.Pipeline().Do(req)
 	if err != nil {
-		return SevereWeatherAlertsResponseResponse{}, err
+		return WeatherGetSevereWeatherAlertsResponse{}, err
 	}
 	if !resp.HasStatusCode(http.StatusOK) {
-		return SevereWeatherAlertsResponseResponse{}, client.getSevereWeatherAlertsHandleError(resp)
+		return WeatherGetSevereWeatherAlertsResponse{}, client.getSevereWeatherAlertsHandleError(resp)
 	}
 	return client.getSevereWeatherAlertsHandleResponse(resp)
 }
@@ -552,12 +1056,12 @@ func (client *WeatherClient) getSevereWeatherAlertsCreateRequest(ctx context.Con
 }
 
 // getSevereWeatherAlertsHandleResponse handles the GetSevereWeatherAlerts response.
-func (client *WeatherClient) getSevereWeatherAlertsHandleResponse(resp *azcore.Response) (SevereWeatherAlertsResponseResponse, error) {
-	var val *SevereWeatherAlertsResponse
-	if err := resp.UnmarshalAsJSON(&val); err != nil {
-		return SevereWeatherAlertsResponseResponse{}, err
+func (client *WeatherClient) getSevereWeatherAlertsHandleResponse(resp *azcore.Response) (WeatherGetSevereWeatherAlertsResponse, error) {
+	result := WeatherGetSevereWeatherAlertsResponse{RawResponse: resp.Response}
+	if err := resp.UnmarshalAsJSON(&result.SevereWeatherAlertsResponse); err != nil {
+		return WeatherGetSevereWeatherAlertsResponse{}, err
 	}
-	return SevereWeatherAlertsResponseResponse{RawResponse: resp.Response, SevereWeatherAlertsResponse: val}, nil
+	return result, nil
 }
 
 // getSevereWeatherAlertsHandleError handles the GetSevereWeatherAlerts error response.
@@ -566,7 +1070,7 @@ func (client *WeatherClient) getSevereWeatherAlertsHandleError(resp *azcore.Resp
 	if err != nil {
 		return azcore.NewResponseError(err, resp.Response)
 	}
-	errType := ErrorResponse{raw: string(body)}
+		errType := ErrorResponse{raw: string(body)}
 	if err := resp.UnmarshalAsJSON(&errType); err != nil {
 		return azcore.NewResponseError(fmt.Errorf("%s\n%s", string(body), err), resp.Response)
 	}
@@ -593,17 +1097,17 @@ func (client *WeatherClient) getSevereWeatherAlertsHandleError(resp *azcore.Resp
 // [https://docs.microsoft.com/azure/azure-maps/tutorial-iot-hub-maps], or selectable distance to the waypoint.
 // The API covers all regions of the planet except latitudes above Greenland and Antarctica.
 // If the operation fails it returns the *ErrorResponse error type.
-func (client *WeatherClient) GetWeatherAlongRoute(ctx context.Context, formatParam ResponseFormat, query string, options *WeatherGetWeatherAlongRouteOptions) (WeatherAlongRouteResponseResponse, error) {
+func (client *WeatherClient) GetWeatherAlongRoute(ctx context.Context, formatParam ResponseFormat, query string, options *WeatherGetWeatherAlongRouteOptions) (WeatherGetWeatherAlongRouteResponse, error) {
 	req, err := client.getWeatherAlongRouteCreateRequest(ctx, formatParam, query, options)
 	if err != nil {
-		return WeatherAlongRouteResponseResponse{}, err
+		return WeatherGetWeatherAlongRouteResponse{}, err
 	}
 	resp, err := client.con.Pipeline().Do(req)
 	if err != nil {
-		return WeatherAlongRouteResponseResponse{}, err
+		return WeatherGetWeatherAlongRouteResponse{}, err
 	}
 	if !resp.HasStatusCode(http.StatusOK) {
-		return WeatherAlongRouteResponseResponse{}, client.getWeatherAlongRouteHandleError(resp)
+		return WeatherGetWeatherAlongRouteResponse{}, client.getWeatherAlongRouteHandleError(resp)
 	}
 	return client.getWeatherAlongRouteHandleResponse(resp)
 }
@@ -635,12 +1139,12 @@ func (client *WeatherClient) getWeatherAlongRouteCreateRequest(ctx context.Conte
 }
 
 // getWeatherAlongRouteHandleResponse handles the GetWeatherAlongRoute response.
-func (client *WeatherClient) getWeatherAlongRouteHandleResponse(resp *azcore.Response) (WeatherAlongRouteResponseResponse, error) {
-	var val *WeatherAlongRouteResponse
-	if err := resp.UnmarshalAsJSON(&val); err != nil {
-		return WeatherAlongRouteResponseResponse{}, err
+func (client *WeatherClient) getWeatherAlongRouteHandleResponse(resp *azcore.Response) (WeatherGetWeatherAlongRouteResponse, error) {
+	result := WeatherGetWeatherAlongRouteResponse{RawResponse: resp.Response}
+	if err := resp.UnmarshalAsJSON(&result.WeatherAlongRouteResponse); err != nil {
+		return WeatherGetWeatherAlongRouteResponse{}, err
 	}
-	return WeatherAlongRouteResponseResponse{RawResponse: resp.Response, WeatherAlongRouteResponse: val}, nil
+	return result, nil
 }
 
 // getWeatherAlongRouteHandleError handles the GetWeatherAlongRoute error response.
@@ -649,9 +1153,10 @@ func (client *WeatherClient) getWeatherAlongRouteHandleError(resp *azcore.Respon
 	if err != nil {
 		return azcore.NewResponseError(err, resp.Response)
 	}
-	errType := ErrorResponse{raw: string(body)}
+		errType := ErrorResponse{raw: string(body)}
 	if err := resp.UnmarshalAsJSON(&errType); err != nil {
 		return azcore.NewResponseError(fmt.Errorf("%s\n%s", string(body), err), resp.Response)
 	}
 	return azcore.NewResponseError(&errType, resp.Response)
 }
+
